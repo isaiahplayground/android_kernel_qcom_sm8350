@@ -70,7 +70,7 @@ function finerr() {
     exit 1
 }
 function compile() {
-    make O=out ARCH=arm64 vendor/lahaina-qgki_defconfig vendor/debugfs.config vendor/xiaomi_QGKI.config vendor/renoir_QGKI.config
+    make O=out ARCH=arm64 vendor/lahaina-qgki_defconfig vendor/debugfs.config vendor/xiaomi_QGKI.config vendor/lisa_QGKI.config
     export PATH=${TCDIR}/bin/:/usr/bin/:${PATH}
     export CROSS_COMPILE=aarch64-linux-gnu-
     export CROSS_COMPILE_ARM32=arm-linux-gnueabi-
