@@ -1,10 +1,7 @@
-#!/usr/bin/env bash
-# Build Script for Quickscrap
-# Copyright (C) 2022-2023 Mar Yvan D.
-
-# Dependency preparation
-sudo apt install bc -y
-sudo apt-get install device-tree-compiler -y
+#!/bin/bash
+#
+# Compile script for Quickscrap kernel
+# Copyright (C) 2020-2021 Adithya R.
 
 SECONDS=0 # builtin bash timer
 TC_DIR="$HOME/tc/clang-r450784d"
@@ -21,15 +18,15 @@ TCDIR=$(pwd)/toolchains/clang
 IMAGE=$(pwd)/out/arch/arm64/boot/Image
 
 # Naming Variables
-KNAME="Quickscrap"
-VERSION="v2.0"
+KNAME="Quickscrap KernelSU"
+VERSION="v1.0"
 CODENAME="lisa"
 MIN_HEAD=$(git rev-parse HEAD)
 export KVERSION="${KNAME}-${VERSION}-${CODENAME}-$(echo ${MIN_HEAD:0:8})"
 
 # GitHub Variables
 export COMMIT_HASH=$(git rev-parse --short HEAD)
-export REPO_URL="https://github.com/isaiahplayground/android_kernel_qcom_sm8350"
+export REPO_URL="https://github.com/isaiahplayground/ksu_kernel_xiaomi_lisa"
 
 # Build Information
 LINKER=ld.lld
@@ -37,7 +34,7 @@ export COMPILER_NAME="$(${TCDIR}/bin/clang --version | head -n 1 | perl -pe 's/\
 export LINKER_NAME="$("${TCDIR}"/bin/${LINKER} --version | head -n 1 | sed 's/(compatible with [^)]*)//' | head -n 1 | perl -pe 's/\(http.*?\)//gs' | sed -e 's/  */ /g' -e 's/[[:space:]]*$//')"
 export KBUILD_BUILD_USER=isaiahscape
 export KBUILD_BUILD_HOST=runner
-export DEVICE="Xiaomi 11 Lite 5G NE / 11 LE"
+export DEVICE="Xiaomi 11 Lite 5G NE"
 export CODENAME="lisa"
 export TYPE="Stable"
 export DISTRO=$(source /etc/os-release && echo "${NAME}")
@@ -85,8 +82,7 @@ if test -z "$(git rev-parse --show-cdup 2>/dev/null)" &&
 fi
 
 MAKE_PARAMS="O=out ARCH=arm64 CC=clang CLANG_TRIPLE=aarch64-linux-gnu- LLVM=1 LLVM_IAS=1 \
-	CROSS_COMPILE=$TC_DIR/bin/llvm- \
-    vendor/debugfs.config vendor/xiaomi_QGKI.config vendor/lisa_QGKI.config"
+	CROSS_COMPILE=$TC_DIR/bin/llvm-"
 
 export PATH="$TC_DIR/bin:$PATH"
 
@@ -144,6 +140,3 @@ cd ..
 rm -rf AnyKernel3
 echo -e "\nCompleted in $((SECONDS / 60)) minute(s) and $((SECONDS % 60)) second(s) !"
 echo "Zip: $ZIPNAME"
-END=$(date +"%s")
-DIFF=$(($END - $START))
-push
