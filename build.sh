@@ -77,7 +77,7 @@ function compile() {
     export CROSS_COMPILE_ARM32=arm-linux-gnueabi-
     export LLVM=1
     export LLVM_IAS=1
-    make -j$(nproc --all) O=out ARCH=arm64 CC=clang LD=ld.lld AR=llvm-ar AS=llvm-as NM=llvm-nm OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump STRIP=llvm-strip kernel="out/arch/arm64/boot/Image" dtb="out/arch/arm64/boot/dts/vendor/qcom/yupik.dtb" dtbo="out/arch/arm64/boot/dts/vendor/qcom/lisa-sm7325-overlay.dtbo" Image.gz-dtb dtb dtbo.img 3>&1 | tee log.txt
+    make -j$(nproc --all) O=out ARCH=arm64 CC=clang LD=ld.lld AR=llvm-ar AS=llvm-as NM=llvm-nm OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump STRIP=llvm-strip kernel="out/arch/arm64/boot/Image.gz-dtb" dtb="out/arch/arm64/boot/dts/vendor/qcom/yupik.dtb" dtbo="out/arch/arm64/boot/dts/vendor/qcom/lisa-sm7325-overlay.dtbo" Image.gz-dtb dtb dtbo.img 3>&1 | tee log.txt
 
     if ! [ -a "$IMAGE" ]; then
         finerr
