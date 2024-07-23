@@ -12,7 +12,8 @@ KDIR=$(pwd)
 DATE=$(date +%d-%h-%Y-%R:%S | sed "s/:/./g")
 START=$(date +"%s")
 TCDIR=$(pwd)/toolchains/clang
-DTBO=out/arch/arm64/boot/dtbo.img
+DTB=out/arch/arm64/boot/dts/vendor/qcom/yupik.dtb
+DTBO=out/arch/arm64/boot/dts/vendor/qcom/lisa-sm7325-overlay.dtbo
 IMAGE=out/arch/arm64/boot/Image.gz-dtb
 
 # Naming Variables
