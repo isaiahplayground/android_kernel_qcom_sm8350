@@ -47,4 +47,4 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: Quickscrap_KernelSU
-        path: ${{ github.workspace }}/kernel_workspace/ksu_kernel_xiaomi_lisa/${{ env.FILENAME }}
+        path: ${{ github.workspace }}/kernel_workspace/android_kernel_qcom_sm8350/${{ env.FILENAME }}
