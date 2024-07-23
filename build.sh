@@ -3,18 +3,22 @@
 # Copyright (C) 2022-2023 Mar Yvan D.
 
 # Dependency preparation
-git clone --depth=1 https://github.com/likkai/AnyKernel3.git -b lisa AnyKernel
 sudo apt install bc -y
 sudo apt-get install device-tree-compiler -y
+
+SECONDS=0 # builtin bash timer
+TC_DIR="$HOME/tc/clang-r450784d"
+AK3_DIR="$HOME/AnyKernel3"
+DEFCONFIG="vendor/lahaina-qgki_defconfig"
+
+ZIPNAME="Quickscrap-lisa_$(date '+%Y%m%d-%H%M').zip"
 
 # Main Variables
 KDIR=$(pwd)
 DATE=$(date +%d-%h-%Y-%R:%S | sed "s/:/./g")
 START=$(date +"%s")
 TCDIR=$(pwd)/toolchains/clang
-DTB=out/arch/arm64/boot/dts/vendor/qcom/yupik.dtb
-DTBO=out/arch/arm64/boot/dts/vendor/qcom/lisa-sm7325-overlay.dtbo
-IMAGE=out/arch/arm64/boot/Image.gz-dtb
+IMAGE=$(pwd)/out/arch/arm64/boot/Image
 
 # Naming Variables
 KNAME="Quickscrap"
@@ -22,6 +26,10 @@ VERSION="v2.0"
 CODENAME="lisa"
 MIN_HEAD=$(git rev-parse HEAD)
 export KVERSION="${KNAME}-${VERSION}-${CODENAME}-$(echo ${MIN_HEAD:0:8})"
+
+# GitHub Variables
+export COMMIT_HASH=$(git rev-parse --short HEAD)
+export REPO_URL="https://github.com/isaiahplayground/android_kernel_qcom_sm8350"
 
 # Build Information
 LINKER=ld.lld
@@ -70,37 +78,72 @@ function finerr() {
         -d text="Compilation failed, please check build logs for errors."
     exit 1
 }
-function compile() {
-    make O=out ARCH=arm64 vendor/lahaina-qgki_defconfig vendor/debugfs.config vendor/xiaomi_QGKI.config vendor/lisa_QGKI.config
-    export PATH=${TCDIR}/bin/:/usr/bin/:${PATH}
-    export CROSS_COMPILE=aarch64-linux-gnu-
-    export CROSS_COMPILE_ARM32=arm-linux-gnueabi-
-    export LLVM=1
-    export LLVM_IAS=1
-    make -j$(nproc --all) O=out ARCH=arm64 CC=clang LD=ld.lld AR=llvm-ar AS=llvm-as NM=llvm-nm OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump STRIP=llvm-strip Image.gz-dtb dtbo.img 2>&1 | tee log.txt
 
-    if ! [ -a "$IMAGE" ]; then
-        finerr
-        exit 1
-    fi
-    cp out/arch/arm64/boot/Image.gz-dtb AnyKernel
+if test -z "$(git rev-parse --show-cdup 2>/dev/null)" &&
+   head=$(git rev-parse --verify HEAD 2>/dev/null); then
+	ZIPNAME="${ZIPNAME::-4}-$(echo $head | cut -c1-8).zip"
+fi
 
-    if ! [ -a "$DTBO" ]; then
-        finerr
-        exit 1
-    fi
-    cp out/arch/arm64/boot/dtbo.img AnyKernel
-}
-# Zipping
-function zipping() {
-    cd AnyKernel || exit 1
-    zip -r "${KVERSION}.zip" . -x ".git*" -x "README.md" -x "*.zip"
-    cd ..
-}
+MAKE_PARAMS="O=out ARCH=arm64 CC=clang CLANG_TRIPLE=aarch64-linux-gnu- LLVM=1 LLVM_IAS=1 \
+	CROSS_COMPILE=$TC_DIR/bin/llvm- \
+    vendor/debugfs.config vendor/xiaomi_QGKI.config vendor/lisa_QGKI.config"
+
+export PATH="$TC_DIR/bin:$PATH"
+
+if [[ $1 = "-r" || $1 = "--regen" ]]; then
+	make $MAKE_PARAMS $DEFCONFIG savedefconfig
+	cp out/defconfig arch/arm64/configs/$DEFCONFIG
+	echo -e "\nSuccessfully regenerated defconfig at $DEFCONFIG"
+	exit
+fi
+
+if [[ $1 = "-c" || $1 = "--clean" ]]; then
+	rm -rf out
+	echo "Cleaned output folder"
+fi
+
+mkdir -p out
+make $MAKE_PARAMS $DEFCONFIG
+
+echo -e "\nStarting compilation...\n"
+make -j$(nproc --all) $MAKE_PARAMS || exit $?
+make -j$(nproc --all) $MAKE_PARAMS INSTALL_MOD_PATH=modules INSTALL_MOD_STRIP=1 modules_install
+
+kernel="out/arch/arm64/boot/Image"
+dtb="out/arch/arm64/boot/dts/vendor/qcom/yupik.dtb"
+dtbo="out/arch/arm64/boot/dts/vendor/qcom/lisa-sm7325-overlay.dtbo"
+
+if [ ! -f "$kernel" ] || [ ! -f "$dtb" ] || [ ! -f "$dtbo" ]; then
+	echo -e "\nCompilation failed!"
+	exit 1
+fi
+
+echo -e "\nKernel compiled succesfully! Zipping up...\n"
+if [ -d "$AK3_DIR" ]; then
+	cp -r $AK3_DIR AnyKernel3
+	git -C AnyKernel3 checkout lisa &> /dev/null
+elif ! git clone -q https://github.com/likkai/AnyKernel3 -b lisa; then
+	echo -e "\nAnyKernel3 repo not found locally and couldn't clone from GitHub! Aborting..."
+	exit 1
+fi
+
 publicinfo
 sendinfo
-compile
-zipping
+cp $kernel AnyKernel3
+cp $dtb AnyKernel3/dtb
+python2 scripts/dtc/libfdt/mkdtboimg.py create AnyKernel3/dtbo.img --page_size=4096 $dtbo
+cp $(find out/modules/lib/modules/5.4* -name '*.ko') AnyKernel3/modules/vendor/lib/modules/
+cp out/modules/lib/modules/5.4*/modules.{alias,dep,softdep} AnyKernel3/modules/vendor/lib/modules
+cp out/modules/lib/modules/5.4*/modules.order AnyKernel3/modules/vendor/lib/modules/modules.load
+sed -i 's/\(kernel\/[^: ]*\/\)\([^: ]*\.ko\)/\/vendor\/lib\/modules\/\2/g' AnyKernel3/modules/vendor/lib/modules/modules.dep
+sed -i 's/.*\///g' AnyKernel3/modules/vendor/lib/modules/modules.load
+rm -rf out/arch/arm64/boot out/modules
+cd AnyKernel3
+zip -r9 "../$ZIPNAME" * -x .git README.md *placeholder
+cd ..
+rm -rf AnyKernel3
+echo -e "\nCompleted in $((SECONDS / 60)) minute(s) and $((SECONDS % 60)) second(s) !"
+echo "Zip: $ZIPNAME"
 END=$(date +"%s")
 DIFF=$(($END - $START))
 push
