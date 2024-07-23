@@ -12,6 +12,7 @@ KDIR=$(pwd)
 DATE=$(date +%d-%h-%Y-%R:%S | sed "s/:/./g")
 START=$(date +"%s")
 TCDIR=$(pwd)/toolchains/clang
+DTB=out/arch/arm64/boot/dtb
 DTBO=out/arch/arm64/boot/dtbo.img
 IMAGE=out/arch/arm64/boot/Image.gz-dtb
 
@@ -76,11 +77,7 @@ function compile() {
     export CROSS_COMPILE_ARM32=arm-linux-gnueabi-
     export LLVM=1
     export LLVM_IAS=1
-    make -j$(nproc --all) O=out ARCH=arm64 CC=clang LD=ld.lld AR=llvm-ar AS=llvm-as NM=llvm-nm OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump STRIP=llvm-strip
-
-    kernel="out/arch/arm64/boot/Image"
-    dtb="out/arch/arm64/boot/dts/vendor/qcom/yupik.dtb"
-    dtbo="out/arch/arm64/boot/dts/vendor/qcom/lisa-sm7325-overlay.dtbo"
+    make -j$(nproc --all) O=out ARCH=arm64 CC=clang LD=ld.lld AR=llvm-ar AS=llvm-as NM=llvm-nm OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump STRIP=llvm-strip kernel="out/arch/arm64/boot/Image" dtb="out/arch/arm64/boot/dts/vendor/qcom/yupik.dtb" dtbo="out/arch/arm64/boot/dts/vendor/qcom/lisa-sm7325-overlay.dtbo" Image.gz-dtb dtb dtbo.img 3>&1 | tee log.txt
 
     if ! [ -a "$IMAGE" ]; then
         finerr
@@ -88,6 +85,12 @@ function compile() {
     fi
     cp out/arch/arm64/boot/Image.gz-dtb AnyKernel
 
+    if ! [ -a "$DTB" ]; then
+        finerr
+        exit 1
+    fi
+    cp out/arch/arm64/boot/dtb AnyKernel
+    
     if ! [ -a "$DTBO" ]; then
         finerr
         exit 1
