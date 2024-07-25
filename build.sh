@@ -87,6 +87,10 @@ function compile() {
         exit 1
     fi
 }
+
+publicinfo
+sendinfo
+compile
 echo -e "\nKernel compiled succesfully! Zipping up...\n"
 if [ -d "$AK3_DIR" ]; then
 	cp -r $AK3_DIR AnyKernel3
@@ -110,10 +114,6 @@ cd ..
 rm -rf AnyKernel3
 echo -e "\nCompleted in $((SECONDS / 60)) minute(s) and $((SECONDS % 60)) second(s) !"
 echo "Zip: $ZIPNAME"
-
-publicinfo
-sendinfo
-compile
 END=$(date +"%s")
 DIFF=$(($END - $START))
 push
